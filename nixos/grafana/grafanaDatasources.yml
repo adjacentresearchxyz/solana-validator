@@ -1,0 +1,12 @@
+apiVersion: 1
+deleteDatasources: []
+datasources:
+  - name: node-exporter
+    access: proxy
+    isDefault: true
+    type: prometheus
+    url: http://localhost:9090/
+ - name: loki
+    access: proxy
+    type: loki
+    url: http://localhost:3030/
