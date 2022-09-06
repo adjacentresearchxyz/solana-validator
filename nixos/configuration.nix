@@ -14,6 +14,9 @@
   # enable vscode-server for remote development
   services.vscode-server.enable = true;
 
+  # setting nix-channel to adjacent fork
+  system.autoUpgrade.channel = "https://github.com/adjacentressearchxyz/niz-channel";
+
   boot.loader = {
     grub = {
       enable = true;

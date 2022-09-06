@@ -128,11 +128,19 @@ resource "aws_instance" "machine" {
     destination = "/etc/nixos/"
   }
 
-  # symlink grafana, prometheus, and loki default configs into /var/lib/<>
-
+  # rebuild the config
   provisioner "remote-exec" {
     inline = [
       "nixos-rebuild switch --flake /etc/nixos/#nixos", # building `nixos` config
+    ]
+  }
+
+  # generate configs and start solana validator
+  provisioner "remote-exec" {
+    inline = [
+      "nix-channel --add https://github.com/adjacentresearchxyz/nix-channel/archive/main.tar.gz adjacent",
+      "nix-channel --update",
+      "nix-env -f https://github.com/adjacentresearchxyz/nix-channel/archive/main.tar.gz -i solana-validator",
     ]
   }
 

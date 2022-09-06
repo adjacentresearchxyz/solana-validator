@@ -217,22 +217,28 @@
     };
   };
   
-  # additional service files
-  #systemd.services.foo = {
-  #  enable = true;
-  #  description = "<description>";
-  #  unitConfig = {
-  #    Type = "simple";
-  #    After = "network.target";
-  #    StartLimitIntervalSec = 0;
-  #  };
-  #  serviceConfig = {
-  #    ExecStart = "<absolute path to binary>";
-  #    Restart = "always";
-  #    RestartSec = 1;
-  #  };
-  #  wantedBy = [ "multi-user.target" ];
-  #};
+  # solana validator service file
+  systemd.services.solana_validator = {
+   enable = true;
+   description = "Solana Validator";
+   unitConfig = {
+     Type = "simple";
+     After = "network.target";
+     StartLimitIntervalSec = 0;
+   };
+   serviceConfig = {
+     ExecStart = "solana-validator \
+        --identity ~/validator-keypair.json \
+        --vote-account ~/vote-account-keypair.json \
+        --rpc-port 8899 \
+        --entrypoint entrypoint.devnet.solana.com:8001 \
+        --limit-ledger-size \
+        --log ~/solana-validator.log";
+     Restart = "always";
+     RestartSec = 1;
+   };
+   wantedBy = [ "multi-user.target" ];
+  };
 
   # Enable the OpenSSH daemon.
   services.openssh.enable = true; 
