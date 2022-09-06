@@ -5,6 +5,7 @@ id_rsa.pub
 
 # Local .terraform directories
 **/.terraform/*
+.terraform.lock.hc1
 
 # .tfstate files
 *.tfstate
