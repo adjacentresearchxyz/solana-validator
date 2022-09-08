@@ -109,8 +109,8 @@
           name = "telegram";
            telegram_configs = [{
             api_url = "https://api.telegram.org";
-            bot_token = <string>;
-            chat_id = <int>;
+            bot_token = "5528635417:AAH68RbB6o8F1q5bXF8u0xiEJy837f13Tzw";
+            chat_id = -700990737;
             # message = "";
             parse_mode = "HTML";
           }];

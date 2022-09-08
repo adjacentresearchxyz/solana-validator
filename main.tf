@@ -5,10 +5,10 @@ terraform {
       version = "~> 4.0"
     }
   }
-  
+
   backend "remote" {
     organization = "adajcentresearch"
-    hostname = "app.terraform.io"
+    hostname     = "app.terraform.io"
 
     workspaces {
       prefix = "adjacent-"
@@ -52,9 +52,9 @@ variable "secret_key" {
 }
 
 variable "key_name" {
-  type = string
+  type        = string
   description = "AWS key to autheticate with"
-  default = "adjacentresearch_rsa"
+  default     = "adjacentresearch_rsa"
 }
 
 # Configure the AWS Provider
@@ -64,12 +64,7 @@ provider "aws" {
   # export AWS_SECRET_ACCESS_KEY="asecretkey"
   access_key = var.access_key
   secret_key = var.secret_key
-  region = "us-east-1"
-}
-
-# Create a VPC
-resource "aws_vpc" "vpc" {
-  cidr_block = "10.0.0.0/16"
+  region     = "us-east-2"
 }
 
 module "nixos_image" {
@@ -77,10 +72,42 @@ module "nixos_image" {
   release = "22.05"
 }
 
-resource "aws_security_group" "ssh_and_egress" {
+resource "aws_security_group" "egress_ports" {
   ingress {
     from_port   = 22
     to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # solana gossip ports https://docs.solana.com/running-validator/validator-reqs#required
+  ingress {
+    from_port   = 8000
+    to_port     = 10000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # solana gossip ports https://docs.solana.com/running-validator/validator-reqs#required
+  ingress {
+    from_port   = 8000
+    to_port     = 10000
+    protocol    = "udp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # solana RPC ports (HTTP) https://docs.solana.com/running-validator/validator-reqs#optional
+  ingress {
+    from_port   = 8899
+    to_port     = 8899
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # solana RPC ports (Websocket) https://docs.solana.com/running-validator/validator-reqs#optional 
+  ingress {
+    from_port   = 8900
+    to_port     = 8900
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -91,6 +118,8 @@ resource "aws_security_group" "ssh_and_egress" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  tags = var.tags
 }
 
 resource "tls_private_key" "state_ssh_key" {
@@ -100,7 +129,7 @@ resource "tls_private_key" "state_ssh_key" {
 resource "aws_instance" "machine" {
   ami             = module.nixos_image.ami
   instance_type   = var.instance_type
-  security_groups = [aws_security_group.ssh_and_egress.name]
+  security_groups = [aws_security_group.egress_ports.id]
   key_name        = var.key_name
 
   tags = var.tags
@@ -116,7 +145,6 @@ resource "aws_instance" "machine" {
     host        = self.public_ip
   }
 
- 
   provisioner "remote-exec" {
     inline = [
       "nixos-generate-config", # building base `nixos` config
@@ -128,14 +156,15 @@ resource "aws_instance" "machine" {
     destination = "/etc/nixos/"
   }
 
-  # rebuild the config
+  # symlink grafana, prometheus, and loki default configs into /var/lib/<>
+
   provisioner "remote-exec" {
     inline = [
       "nixos-rebuild switch --flake /etc/nixos/#nixos", # building `nixos` config
     ]
   }
 
-  # generate configs and start solana validator
+  # add adjacent channel and install solana packages
   provisioner "remote-exec" {
     inline = [
       "nix-channel --add https://github.com/adjacentresearchxyz/nix-channel/archive/main.tar.gz adjacent",
@@ -144,6 +173,23 @@ resource "aws_instance" "machine" {
     ]
   }
 
+  # generate keys 
+  ## note: creating on devnet given in order to create vote account and start on mainnet SOL needs to be sent to an the fee payer account
+  # provisioner "remote-exec" {
+  #   inline = [
+  #     "solana config set --url http://api.devet.solana.com", # config for mainnet-beta
+  #     "solana transaction-count",
+  #     "mkdir /etc/nixos/solana",
+  #     "solana-keygen new -o /etc/nixos/solana/validator-keypair.json", # generate validator-keypair
+  #     "solana config set --keypair /etc/nixos/solana/validator-keypair.json" # set keypair in config
+  #     "solana-keygen new -o /etc/nixos/solana/authorized-withdrawer-keypair.json", # create authorized withdrawer
+  #     "solana-keygen new -o /etc/nixos/solana/vote-account-keypair.json", # create vote account 
+  #     "solana airdrop 1", # airdrop some SOL for vote account
+  #     "solana create-vote-account /etc/nixos/solana/vote-account-keypair.json /etc/nixos/solana/validator-keypair.json /etc/nixos/solana/authorized-withdrawer-keypair.json", # create vote account 
+  #   ]
+  # }
+
+  # start solana validator
 }
 
 output "public_dns" {
