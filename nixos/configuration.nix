@@ -7,7 +7,7 @@
       ./services/services.nix
       (fetchTarball {
 	       url = "https://github.com/msteen/nixos-vscode-server/tarball/master";
-         sha256 = "00ki5z2svrih9j9ipl8dm3dl6hi9wgibydsfa7rz2mdw9p0370yl";
+         sha256 = "1qga1cmpavyw90xap5kfz8i6yz85b0blkkwvl00sbaxqcgib2rvv";
       })
     ];
 
@@ -27,8 +27,26 @@
     };
   };
 
+  # systcl tuning from https://docs.solana.com/running-validator/validator-start#optimize-sysctl-knobs
+  boot.kernel.sysctl = {
+     "net.core.rmem_default" = "134217728";
+     "net.core.rmem_max" = "134217728";
+     "net.core.wmem_default" = "134217728";
+     "net.core.wmem_max" = "134217728";
+     "vm.max_map_count" = "1000000";
+     "fs.nr_open" = "1000000";
+  };
+
   networking.hostName = "solana-validator";
   networking.networkmanager.enable = true;
+
+  networking.firewall = {
+    enable = true;
+    allowedTCPPorts = [ 8899 8900 8000 ];
+    allowedUDPPortRanges = [
+      { from = 8000; to = 10000; }
+    ];
+  };
 
   time.timeZone = "America/New_York";
 

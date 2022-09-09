@@ -2,7 +2,7 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 4.0"
+      version = "~> 4.29"
     }
   }
 
@@ -64,7 +64,7 @@ provider "aws" {
   # export AWS_SECRET_ACCESS_KEY="asecretkey"
   access_key = var.access_key
   secret_key = var.secret_key
-  region     = "us-east-2"
+  region     = "us-east-1"
 }
 
 module "nixos_image" {
@@ -73,6 +73,7 @@ module "nixos_image" {
 }
 
 resource "aws_security_group" "egress_ports" {
+  vpc_id = "vpc-0d7d7f1f799e0dd0a "
   ingress {
     from_port   = 22
     to_port     = 22
@@ -130,6 +131,7 @@ resource "aws_instance" "machine" {
   ami             = module.nixos_image.ami
   instance_type   = var.instance_type
   security_groups = [aws_security_group.egress_ports.id]
+  subnet_id       = "subnet-000390238e20aae0b"
   key_name        = var.key_name
 
   tags = var.tags
@@ -156,8 +158,6 @@ resource "aws_instance" "machine" {
     destination = "/etc/nixos/"
   }
 
-  # symlink grafana, prometheus, and loki default configs into /var/lib/<>
-
   provisioner "remote-exec" {
     inline = [
       "nixos-rebuild switch --flake /etc/nixos/#nixos", # building `nixos` config
@@ -174,22 +174,20 @@ resource "aws_instance" "machine" {
   }
 
   # generate keys 
-  ## note: creating on devnet given in order to create vote account and start on mainnet SOL needs to be sent to an the fee payer account
-  # provisioner "remote-exec" {
-  #   inline = [
-  #     "solana config set --url http://api.devet.solana.com", # config for mainnet-beta
-  #     "solana transaction-count",
-  #     "mkdir /etc/nixos/solana",
-  #     "solana-keygen new -o /etc/nixos/solana/validator-keypair.json", # generate validator-keypair
-  #     "solana config set --keypair /etc/nixos/solana/validator-keypair.json" # set keypair in config
-  #     "solana-keygen new -o /etc/nixos/solana/authorized-withdrawer-keypair.json", # create authorized withdrawer
-  #     "solana-keygen new -o /etc/nixos/solana/vote-account-keypair.json", # create vote account 
-  #     "solana airdrop 1", # airdrop some SOL for vote account
-  #     "solana create-vote-account /etc/nixos/solana/vote-account-keypair.json /etc/nixos/solana/validator-keypair.json /etc/nixos/solana/authorized-withdrawer-keypair.json", # create vote account 
-  #   ]
-  # }
-
-  # start solana validator
+  # note: creating on devnet given in order to create vote account and start on mainnet SOL needs to be sent to an the fee payer account
+  provisioner "remote-exec" {
+    inline = [
+      "solana config set --url http://api.devnet.solana.com", # config for mainnet-beta
+      "solana transaction-count",
+      "mkdir /etc/nixos/solana",
+      "solana-keygen new -o /etc/nixos/solana/validator-keypair.json", # generate validator-keypair
+      "solana config set --keypair /etc/nixos/solana/validator-keypair.json", # set keypair in config
+      "solana-keygen new -o /etc/nixos/solana/authorized-withdrawer-keypair.json", # create authorized withdrawer
+      "solana-keygen new -o /etc/nixos/solana/vote-account-keypair.json", # create vote account 
+      "solana airdrop 1", # airdrop some SOL for vote account
+      "solana create-vote-account /etc/nixos/solana/vote-account-keypair.json /etc/nixos/solana/validator-keypair.json /etc/nixos/solana/authorized-withdrawer-keypair.json", # create vote account 
+    ]
+  }
 }
 
 output "public_dns" {

@@ -227,15 +227,16 @@
      StartLimitIntervalSec = 0;
    };
    serviceConfig = {
-     ExecStart = "solana-validator \
-        --identity ~/validator-keypair.json \
-        --vote-account ~/vote-account-keypair.json \
+     ExecStart = "/root/.nix-profile/bin/solana-validator \
+        --identity /etc/nixos/solana/validator-keypair.json \
+        --vote-account /etc/nixos/solana/vote-account-keypair.json \
         --rpc-port 8899 \
         --entrypoint entrypoint.devnet.solana.com:8001 \
         --limit-ledger-size \
-        --log ~/solana-validator.log";
+        --log /etc/nixos/solana/solana-validator.log";
      Restart = "always";
      RestartSec = 1;
+     LimitNOFILE = "1000000";
    };
    wantedBy = [ "multi-user.target" ];
   };
