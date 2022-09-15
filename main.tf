@@ -158,12 +158,6 @@ resource "aws_instance" "machine" {
     destination = "/etc/nixos/"
   }
 
-  provisioner "remote-exec" {
-    inline = [
-      "nixos-rebuild switch --flake /etc/nixos/#nixos", # building `nixos` config
-    ]
-  }
-
   # add adjacent channel and install solana packages
   provisioner "remote-exec" {
     inline = [
@@ -180,12 +174,18 @@ resource "aws_instance" "machine" {
       "solana config set --url http://api.devnet.solana.com", # config for mainnet-beta
       "solana transaction-count",
       "mkdir /etc/nixos/solana",
-      "solana-keygen new -o /etc/nixos/solana/validator-keypair.json", # generate validator-keypair
+      "solana-keygen new -o /etc/nixos/solana/validator-keypair.json --no-bip39-passphrase", # generate validator-keypair
       "solana config set --keypair /etc/nixos/solana/validator-keypair.json", # set keypair in config
-      "solana-keygen new -o /etc/nixos/solana/authorized-withdrawer-keypair.json", # create authorized withdrawer
-      "solana-keygen new -o /etc/nixos/solana/vote-account-keypair.json", # create vote account 
+      "solana-keygen new -o /etc/nixos/solana/authorized-withdrawer-keypair.json --no-bip39-passphrase", # create authorized withdrawer
+      "solana-keygen new -o /etc/nixos/solana/vote-account-keypair.json --no-bip39-passphrase", # create vote account 
       "solana airdrop 1", # airdrop some SOL for vote account
       "solana create-vote-account /etc/nixos/solana/vote-account-keypair.json /etc/nixos/solana/validator-keypair.json /etc/nixos/solana/authorized-withdrawer-keypair.json", # create vote account 
+    ]
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "nixos-rebuild switch", # building `nixos` config
     ]
   }
 }

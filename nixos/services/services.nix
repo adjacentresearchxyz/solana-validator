@@ -218,6 +218,7 @@
   };
   
   # solana validator service file
+  # this is for devnet
   systemd.services.solana_validator = {
    enable = true;
    description = "Solana Validator";
@@ -227,19 +228,32 @@
      StartLimitIntervalSec = 0;
    };
    serviceConfig = {
-     ExecStart = "/root/.nix-profile/bin/solana-validator \
-        --identity /etc/nixos/solana/validator-keypair.json \
-        --vote-account /etc/nixos/solana/vote-account-keypair.json \
-        --rpc-port 8899 \
-        --entrypoint entrypoint.devnet.solana.com:8001 \
-        --limit-ledger-size \
-        --log /etc/nixos/solana/solana-validator.log";
+     ExecStart = "/root/.nix-profile/bin/solana-validator --identity validator-keypair.json --vote-account vote-account-keypair.json --rpc-port 8899 --entrypoint entrypoint.devnet.solana.com:8001 --entrypoint entrypoint2.devnet.solana.com:8001 --entrypoint entrypoint3.devnet.solana.com:8001 --entrypoint entrypoint4.devnet.solana.com:8001 --entrypoint entrypoint5.devnet.solana.com:8001 --limit-ledger-size --log solana-validator.log --known-validator dv1ZAGvdsz5hHLwWXsVnM94hWf1pjbKVau1QVkaMJ92 --known-validator dv2eQHeP4RFrJZ6UeiZWoc3XTtmtZCUKxxCApCDcRNV --known-validator dv4ACNkpYPcE3aKmYDqZm9G5EB3J4MRoeE7WNDRBVJB --known-validator dv3qDFk1DTF36Z62bNvrCXe9sKATA6xvVy6A798xxAS";
+     WorkingDirectory = "/etc/nixos/solana";
      Restart = "always";
      RestartSec = 1;
-     LimitNOFILE = "1000000";
    };
    wantedBy = [ "multi-user.target" ];
   };
+
+  # solana validator service file
+  # this is for mainnet
+  # systemd.services.solana_validator = {
+  #  enable = true;
+  #  description = "Solana Validator";
+  #  unitConfig = {
+  #    Type = "simple";
+  #    After = "network.target";
+  #    StartLimitIntervalSec = 0;
+  #  };
+  #  serviceConfig = {
+  #    ExecStart = "/root/.nix-profile/bin/solana-validator --identity validator-keypair.json --vote-account vote-account-keypair.json --rpc-port 8899 --entrypoint entrypoint.mainnet-beta.solana.com:8001 --entrypoint entrypoint2.mainnet-beta.solana.com:8001 --entrypoint entrypoint3.mainnet-beta.solana.com:8001 --entrypoint entrypoint4.mainnet-beta.solana.com:8001 --entrypoint entrypoint5.mainnet-beta.solana.com:8001 --limit-ledger-size --log solana-validator.log  --expected-genesis-hash 5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d --expected-shred-version 51382 --known-validator 7Np41oeYqPefeNQEHSv1UDhYrehxin3NStELsSKCT4K2 --known-validator GdnSyH3YtwcxFvQrVVJMm1JhTS4QVX7MFsX56uJLUfiZ --known-validator DE1bawNcRJB9rVm3buyMVfr8mBEoyyu73NBovf2oXJsJ --known-validator XkCriyrNwS3G4rzAXtG5B1nnvb5Ka1JtCku93VqeKAr --known-validator EvnRmnMrd69kFdbLMxWkTn1icZ7DCceRhvmb2SJXqDo4 --known-validator DWvDTSh3qfn88UoQTEKRV2JnLt5jtJAVoiCo3ivtMwXP --known-validator Awes4Tr6TX8JDzEhCZY2QVNimT6iD1zWHzf1vNyGvpLM";
+  #    WorkingDirectory = "/etc/nixos/solana";
+  #    Restart = "always";
+  #    RestartSec = 1;
+  #  };
+  #  wantedBy = [ "multi-user.target" ];
+  # };
 
   # Enable the OpenSSH daemon.
   services.openssh.enable = true; 
