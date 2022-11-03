@@ -18,6 +18,16 @@ terraform init
 terraform apply # will output an IP that you can log into with the given `.pem` file in your AWS credentials
 ```
 
+This provisioning will create all the keys nessecary to start a `devnet` validator but has all of the required components to run a `mainnet-beta` validator. You simply need to create the keys and slightly change the configuration
+
+Refer to [generating keys](https://docs.solana.com/running-validator/validator-start#generate-identity) in the solana documentation to create the `validator keypair`, `withdraw authority`, and `vote account` keys that are nessecary
+
+Change the solana config 
+`solana config set --url http://api.mainnet-beta.solana.com`
+
+Change the service file entrypoint in `/etc/nixos/services/service.nix`
+`--entrypoint entrypoint.mainnet-beta.solana.com:8001`
+
 ### Note
 Note there might already be a default vpc or subnet in your AWS region in which case you can define your `subnet_id` and `vpc_id`. For example 
 ```
