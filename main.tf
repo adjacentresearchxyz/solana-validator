@@ -57,6 +57,26 @@ variable "key_name" {
   default     = "adjacentresearch_rsa"
 }
 
+variable "region" {
+  description = "The AWS Region"
+  default = "us-east-1"
+}
+ 
+variable "availability_zone" {
+  default = "us-east-1a"
+  description = "The names of the availability zones to use"
+}
+ 
+variable "vpc_cidr" {
+  default = "10.0.0.0/16"
+  description = "The CIDR block of the vpc"
+}
+ 
+variable "public_subnet_cidr" {
+  default = "10.0.10.0/24"  
+  description = "The CIDR block for the public subnet"
+}
+
 # Configure the AWS Provider
 provider "aws" {
   # Keys can also be exported see https://registry.terraform.io/providers/hashicorp/aws/latest/docs#authentication
@@ -64,7 +84,7 @@ provider "aws" {
   # export AWS_SECRET_ACCESS_KEY="asecretkey"
   access_key = var.access_key
   secret_key = var.secret_key
-  region     = "us-east-1"
+  region     = var.region
 }
 
 module "nixos_image" {
@@ -72,8 +92,54 @@ module "nixos_image" {
   release = "22.05"
 }
 
-resource "aws_security_group" "egress_ports" {
-  vpc_id = "vpc-0d7d7f1f799e0dd0a "
+# Define VPC
+resource "aws_vpc" "vpc" {
+  cidr_block           = var.vpc_cidr
+  enable_dns_hostnames = true
+  enable_dns_support   = true
+ 
+  tags = var.tags
+}
+
+# Define public subnet
+resource "aws_subnet" "public_subnet" {
+  vpc_id                  = aws_vpc.vpc.id
+  cidr_block              = var.public_subnet_cidr
+  availability_zone       = var.availability_zone
+  map_public_ip_on_launch = true
+ 
+  tags = var.tags
+}
+
+# Define internet gateway
+resource "aws_internet_gateway" "gw" {
+  vpc_id = aws_vpc.vpc.id
+ 
+  tags = var.tags
+}
+
+# Create 2nd route table
+resource "aws_route_table" "second_rt" {
+ vpc_id = aws_vpc.vpc.id
+ 
+ route {
+   cidr_block = "0.0.0.0/0"
+   gateway_id = aws_internet_gateway.gw.id
+ }
+ 
+ tags = var.tags
+}
+
+# Associate public subnet with 2nnd route table for internet access
+resource "aws_route_table_association" "public_subnet_asso" {
+ subnet_id      = aws_subnet.public_subnet.id
+ route_table_id = aws_route_table.second_rt.id
+}
+
+resource "aws_security_group" "default" {
+  vpc_id      = aws_vpc.vpc.id
+  depends_on  = [aws_vpc.vpc]
+
   ingress {
     from_port   = 22
     to_port     = 22
@@ -114,10 +180,11 @@ resource "aws_security_group" "egress_ports" {
   }
 
   egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    from_port        = "0"
+    to_port          = "0"
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
   }
 
   tags = var.tags
@@ -128,10 +195,12 @@ resource "tls_private_key" "state_ssh_key" {
 }
 
 resource "aws_instance" "machine" {
-  ami             = module.nixos_image.ami
+  ami = module.nixos_image.ami
+  # ami = "ami-0223db08811f6fb2d" # nixos 22.05 for us-east-1
+  # ami = "ami-0a743534fa3e51b41" # nixos 22.05 for us-east-2
   instance_type   = var.instance_type
-  security_groups = [aws_security_group.egress_ports.id]
-  subnet_id       = "subnet-000390238e20aae0b"
+  security_groups = [aws_security_group.default.id]
+  subnet_id       = aws_subnet.public_subnet.id
   key_name        = var.key_name
 
   tags = var.tags
@@ -143,7 +212,7 @@ resource "aws_instance" "machine" {
   connection {
     type        = "ssh"
     user        = "root"
-    private_key = file("./id_rsa.pem")
+    private_key = file("./adjacentresearch_rsa.pem") # your private key here
     host        = self.public_ip
   }
 

@@ -17,14 +17,11 @@ Deployment of `NixOS` via `terraform` with monitoring and log collection
 ├── nixos
 │   ├── README.md
 │   ├── configuration.nix
-│   ├── flake.lock
-│   ├── flake.nix
 │   ├── grafana
 │   │   ├── dashboards
 │   │   │   ├── logging.json
 │   │   │   └── node_exporter.json
 │   │   └── grafanaDatasources.yml
-│   ├── home.nix
 │   └── promtail.yaml
 └── variables
     └── base.tfvars
@@ -39,9 +36,13 @@ Deployment of `NixOS` via `terraform` with monitoring and log collection
         - `loki` for system log collection 
         - `prometheus` for system statistics collection
         
+Since `NixOS` does not have a AWS supported AMI, community built ones are used. Below are common AMIs for regions `us-east-1` and `us-east-2`. If you want to deploy into a different region or would like to use a different version of `Nixos` you can search the public AMIs [here](https://console.aws.amazon.com/ec2/home?#AMICatalog)
+
 ```
 # the following AMI is used
-"22.05.us-east-1.hvm-ebs" = "ami-0223db08811f6fb2d"
+# located in `.terraform/modules/nixos_image/aws_image_nixos/url_map.tf
+ami = "ami-0223db08811f6fb2d" # nixos 22.05 for us-east-1
+ami = "ami-0a743534fa3e51b41" # nixos 22.05 for us-east-2
 ```
 
 ## Deploying 
