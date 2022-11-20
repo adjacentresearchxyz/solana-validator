@@ -1,0 +1,35 @@
+#cloud-config
+
+runcmd:
+  - sudo touch /home/ubuntu/solana-install.log
+  # install solana and dependencies
+  - sh -c "$(curl -sSfL https://release.solana.com/v1.14.7/install)"
+  # write out systemd file
+  - echo "[Unit]
+Description=Solana Validator
+After=network.target
+Wants=solana-sys-tuner.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+User=ubuntu
+LimitNOFILE=1000000
+LogRateLimitIntervalSec=0
+Environment="PATH=/bin:/usr/bin:/home/sol/.local/share/solana/install/active_release/bin"
+ExecStart=solana-validator --identity /home/ubuntu/validator-keypair.json --vote-account /home/ubuntu/vote-account-keypair.json --rpc-port 8899 --entrypoint entrypoint.mainnet-beta.solana.com:8001 --entrypoint entrypoint2.mainnet-beta.solana.com:8001 --entrypoint entrypoint3.mainnet-beta.solana.com:8001 --entrypoint entrypoint4.mainnet-beta.solana.com:8001 --entrypoint entrypoint5.mainnet-beta.solana.com:8001 --limit-ledger-size --log /home/ubuntu/solana-validator.log  --expected-genesis-hash 5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d --expected-shred-version 51382 --known-validator 7Np41oeYqPefeNQEHSv1UDhYrehxin3NStELsSKCT4K2 --known-validator GdnSyH3YtwcxFvQrVVJMm1JhTS4QVX7MFsX56uJLUfiZ --known-validator DE1bawNcRJB9rVm3buyMVfr8mBEoyyu73NBovf2oXJsJ --known-validator CakcnaRDHka2gXyfbEd2d3xsvkJkqsLw2akB3zsN1D2S";
+
+[Install]
+WantedBy=multi-user.target" > /etc/systemd/system/solana.service
+  # setup validator
+  - solana config set --url http://api.devnet.solana.com >> /home/ubuntu/solana-install.log
+  - solana transaction-count >> /home/ubuntu/solana-install.log
+  - mkdir /home/ubuntu/solana >> /home/ubuntu/solana-install.log
+  - solana-keygen new -o /home/ubuntu/solana/validator-keypair.json --no-bip39-passphrase >> /home/ubuntu/solana-install.log
+  - solana config set --keypair /home/ubuntu/solana/validator-keypair.json >> /home/ubuntu/solana-install.log
+  - solana-keygen new -o /home/ubuntu/solana/authorized-withdrawer-keypair.json --no-bip39-passphrase >> /home/ubuntu/solana-install.log
+  - solana-keygen new -o /home/ubuntu/solana/vote-account-keypair.json --no-bip39-passphrase >> /home/ubuntu/solana-install.log
+  - solana airdrop 1 >> /home/ubuntu/solana-install.log
+  - solana create-vote-account /home/ubuntu/solana/vote-account-keypair.json /home/ubuntu/solana/validator-keypair.json /home/ubuntu/solana/authorized-withdrawer-keypair.json >> /home/ubuntu/solana-install.log
