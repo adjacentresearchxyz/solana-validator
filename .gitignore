@@ -2,6 +2,11 @@
 .aws
 id_rsa.pem
 id_rsa.pub
+*.log
+*.pem
+*.pub
+
+ledger/
 
 # Local .terraform directories
 **/.terraform/*

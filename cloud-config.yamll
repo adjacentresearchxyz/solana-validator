@@ -1,0 +1,13 @@
+#cloud-config
+
+runcmd:
+  - sudo touch /home/ubuntu/solana-install.log
+  - solana config set --url http://api.devnet.solana.com >> /home/ubuntu/solana-install.log
+  - solana transaction-count >> /home/ubuntu/solana-install.log
+  - mkdir /home/ubuntu/solana >> /home/ubuntu/solana-install.log
+  - solana-keygen new -o /home/ubuntu/solana/validator-keypair.json --no-bip39-passphrase >> /home/ubuntu/solana-install.log
+  - solana config set --keypair /home/ubuntu/solana/validator-keypair.json >> /home/ubuntu/solana-install.log
+  - solana-keygen new -o /home/ubuntu/solana/authorized-withdrawer-keypair.json --no-bip39-passphrase >> /home/ubuntu/solana-install.log
+  - solana-keygen new -o /home/ubuntu/solana/vote-account-keypair.json --no-bip39-passphrase >> /home/ubuntu/solana-install.log
+  - solana airdrop 1 >> /home/ubuntu/solana-install.log
+  - solana create-vote-account /home/ubuntu/solana/vote-account-keypair.json /home/ubuntu/solana/validator-keypair.json /home/ubuntu/solana/authorized-withdrawer-keypair.json >> /home/ubuntu/solana-install.log

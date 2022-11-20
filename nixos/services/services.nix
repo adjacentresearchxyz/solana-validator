@@ -109,6 +109,8 @@
           name = "telegram";
            telegram_configs = [{
             api_url = "https://api.telegram.org";
+            # bot_token = <string>;
+            # chat_id = <int>;
             bot_token = "5528635417:AAH68RbB6o8F1q5bXF8u0xiEJy837f13Tzw";
             chat_id = -700990737;
             # message = "";
@@ -218,43 +220,27 @@
   };
   
   # solana validator service file
-  # this is for devnet
   systemd.services.solana_validator = {
    enable = true;
    description = "Solana Validator";
    unitConfig = {
      Type = "simple";
-     After = "network-online.target";
-     Wants="network-online.target";
-     StartLimitIntervalSec = 10;
+     After = "network.target";
+     StartLimitIntervalSec = 0;vs
    };
    serviceConfig = {
-     ExecStart = "/root/.nix-profile/bin/solana-validator --identity validator-keypair.json --vote-account vote-account-keypair.json --rpc-port 8899 --entrypoint entrypoint.devnet.solana.com:8001 --entrypoint entrypoint2.devnet.solana.com:8001 --entrypoint entrypoint3.devnet.solana.com:8001 --entrypoint entrypoint4.devnet.solana.com:8001 --entrypoint entrypoint5.devnet.solana.com:8001 --limit-ledger-size --log solana-validator.log --known-validator dv1ZAGvdsz5hHLwWXsVnM94hWf1pjbKVau1QVkaMJ92 --known-validator dv2eQHeP4RFrJZ6UeiZWoc3XTtmtZCUKxxCApCDcRNV --known-validator dv4ACNkpYPcE3aKmYDqZm9G5EB3J4MRoeE7WNDRBVJB --known-validator dv3qDFk1DTF36Z62bNvrCXe9sKATA6xvVy6A798xxAS";
-     WorkingDirectory = "/etc/nixos/solana";
+     ExecStart = "solana-validator \
+        --identity ~/validator-keypair.json \
+        --vote-account ~/vote-account-keypair.json \
+        --rpc-port 8899 \
+        --entrypoint entrypoint.devnet.solana.com:8001 \
+        --limit-ledger-size \
+        --log ~/solana-validator.log";
      Restart = "always";
-     RestartSec = 25;
+     RestartSec = 1;
    };
    wantedBy = [ "multi-user.target" ];
   };
-
-  # solana validator service file
-  # this is for mainnet
-  # systemd.services.solana_validator = {
-  #  enable = true;
-  #  description = "Solana Validator";
-  #  unitConfig = {
-  #    Type = "simple";
-  #    After = "network.target";
-  #    StartLimitIntervalSec = 0;
-  #  };
-  #  serviceConfig = {
-  #    ExecStart = "/root/.nix-profile/bin/solana-validator --identity validator-keypair.json --vote-account vote-account-keypair.json --rpc-port 8899 --entrypoint entrypoint.mainnet-beta.solana.com:8001 --entrypoint entrypoint2.mainnet-beta.solana.com:8001 --entrypoint entrypoint3.mainnet-beta.solana.com:8001 --entrypoint entrypoint4.mainnet-beta.solana.com:8001 --entrypoint entrypoint5.mainnet-beta.solana.com:8001 --limit-ledger-size --log solana-validator.log  --expected-genesis-hash 5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d --expected-shred-version 51382 --known-validator 7Np41oeYqPefeNQEHSv1UDhYrehxin3NStELsSKCT4K2 --known-validator GdnSyH3YtwcxFvQrVVJMm1JhTS4QVX7MFsX56uJLUfiZ --known-validator DE1bawNcRJB9rVm3buyMVfr8mBEoyyu73NBovf2oXJsJ --known-validator CakcnaRDHka2gXyfbEd2d3xsvkJkqsLw2akB3zsN1D2S";
-  #    WorkingDirectory = "/etc/nixos/solana";
-  #    Restart = "always";
-  #    RestartSec = 1;
-  #  };
-  #  wantedBy = [ "multi-user.target" ];
-  # };
 
   # Enable the OpenSSH daemon.
   services.openssh.enable = true; 
