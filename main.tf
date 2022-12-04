@@ -59,11 +59,11 @@ variable "key_name" {
 
 variable "region" {
   description = "The AWS Region"
-  default = "us-east-1"
+  default = "eu-central-1"
 }
  
 variable "availability_zone" {
-  default = "us-east-1a"
+  default = "eu-central-1a"
   description = "The names of the availability zones to use"
 }
  
@@ -85,11 +85,6 @@ provider "aws" {
   access_key = var.access_key
   secret_key = var.secret_key
   region     = var.region
-}
-
-module "nixos_image" {
-  source  = "git::https://github.com/tweag/terraform-nixos.git//aws_image_nixos?ref=5f5a0408b299874d6a29d1271e9bffeee4c9ca71"
-  release = "22.05"
 }
 
 # Define VPC
@@ -147,37 +142,37 @@ resource "aws_security_group" "default" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # solana gossip ports https://docs.solana.com/running-validator/validator-reqs#required
-  ingress {
-    from_port   = 8000
-    to_port     = 10000
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+  # # solana gossip ports https://docs.solana.com/running-validator/validator-reqs#required
+  # ingress {
+  #   from_port   = 8000
+  #   to_port     = 10000
+  #   protocol    = "tcp"
+  #   cidr_blocks = ["0.0.0.0/0"]
+  # }
 
-  # solana gossip ports https://docs.solana.com/running-validator/validator-reqs#required
-  ingress {
-    from_port   = 8000
-    to_port     = 10000
-    protocol    = "udp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+  # # solana gossip ports https://docs.solana.com/running-validator/validator-reqs#required
+  # ingress {
+  #   from_port   = 8000
+  #   to_port     = 10000
+  #   protocol    = "udp"
+  #   cidr_blocks = ["0.0.0.0/0"]
+  # }
 
-  # solana RPC ports (HTTP) https://docs.solana.com/running-validator/validator-reqs#optional
-  ingress {
-    from_port   = 8899
-    to_port     = 8899
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+  # # solana RPC ports (HTTP) https://docs.solana.com/running-validator/validator-reqs#optional
+  # ingress {
+  #   from_port   = 8899
+  #   to_port     = 8899
+  #   protocol    = "tcp"
+  #   cidr_blocks = ["0.0.0.0/0"]
+  # }
 
-  # solana RPC ports (Websocket) https://docs.solana.com/running-validator/validator-reqs#optional 
-  ingress {
-    from_port   = 8900
-    to_port     = 8900
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+  # # solana RPC ports (Websocket) https://docs.solana.com/running-validator/validator-reqs#optional 
+  # ingress {
+  #   from_port   = 8900
+  #   to_port     = 8900
+  #   protocol    = "tcp"
+  #   cidr_blocks = ["0.0.0.0/0"]
+  # }
 
   egress {
     from_port        = "0"
@@ -195,7 +190,7 @@ resource "tls_private_key" "state_ssh_key" {
 }
 
 resource "aws_instance" "machine" {
-  ami = module.nixos_image.ami
+  ami = "ami-061dbd1209944525c"
   # ami = "ami-0223db08811f6fb2d" # nixos 22.05 for us-east-1
   # ami = "ami-0a743534fa3e51b41" # nixos 22.05 for us-east-2
   instance_type   = var.instance_type
@@ -216,47 +211,6 @@ resource "aws_instance" "machine" {
     host        = self.public_ip
   }
 
-  provisioner "remote-exec" {
-    inline = [
-      "nixos-generate-config", # building base `nixos` config
-    ]
-  }
-
-  provisioner "file" {
-    source      = "./nixos/" # note need the trailing slash to fully upload all the directories contents to the destination https://www.terraform.io/language/resources/provisioners/file#directory-uploads
-    destination = "/etc/nixos/"
-  }
-
-  # add adjacent channel and install solana packages
-  provisioner "remote-exec" {
-    inline = [
-      "nix-channel --add https://github.com/adjacentresearchxyz/nix-channel/archive/main.tar.gz adjacent",
-      "nix-channel --update",
-      "nix-env -f https://github.com/adjacentresearchxyz/nix-channel/archive/main.tar.gz -i solana-validator",
-    ]
-  }
-
-  # generate keys 
-  # note: creating on devnet given in order to create vote account and start on mainnet SOL needs to be sent to an the fee payer account
-  provisioner "remote-exec" {
-    inline = [
-      "solana config set --url http://api.devnet.solana.com", # config for mainnet-beta
-      "solana transaction-count",
-      "mkdir /etc/nixos/solana",
-      "solana-keygen new -o /etc/nixos/solana/validator-keypair.json --no-bip39-passphrase", # generate validator-keypair
-      "solana config set --keypair /etc/nixos/solana/validator-keypair.json", # set keypair in config
-      "solana-keygen new -o /etc/nixos/solana/authorized-withdrawer-keypair.json --no-bip39-passphrase", # create authorized withdrawer
-      "solana-keygen new -o /etc/nixos/solana/vote-account-keypair.json --no-bip39-passphrase", # create vote account 
-      "solana airdrop 1", # airdrop some SOL for vote account
-      "solana create-vote-account /etc/nixos/solana/vote-account-keypair.json /etc/nixos/solana/validator-keypair.json /etc/nixos/solana/authorized-withdrawer-keypair.json", # create vote account 
-    ]
-  }
-
-  provisioner "remote-exec" {
-    inline = [
-      "nixos-rebuild switch", # building `nixos` config
-    ]
-  }
 }
 
 output "public_dns" {
